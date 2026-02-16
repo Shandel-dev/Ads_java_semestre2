@@ -15,7 +15,7 @@ public class Lt01Ex22Ordem {
 		msgCrescente = valueA + ", " + valueB;
 		if(valueB < valueA) msgCrescente = valueB + ", " + valueA;
 		
-		JOptionPane.showInputDialog(null, "Ordem crescente -> (" + msgCrescente + ")", titleExe, JOptionPane.INFORMATION_MESSAGE);
+		JOptionPane.showMessageDialog(null, "Ordem crescente -> (" + msgCrescente + ")", titleExe, JOptionPane.INFORMATION_MESSAGE);
 		
 	}
 
