@@ -46,7 +46,7 @@ public class CaixaEletronico {
 		//1.1. Carregar a quantidade de notas em uma área da memória com 6 ocorrências
 		final String TITLE_LOAD = "Depósito bancário | FATEC-ZL";
 		String[] options = {"PERSONALIZADO", "FIXO", "Cancelar"};
-		String depositReport = "Relatório de depósitos\nVALOR | QTD. NOTAS\n";
+		StringBuilder depositReport = new StringBuilder();
 		
 		int[] currQuantityBanknotes = Arrays.copyOf(listNotas, listNotas.length);
 		int[] banknotesDeposited = new int[6];
@@ -58,7 +58,7 @@ public class CaixaEletronico {
 			opMenu = JOptionPane.showOptionDialog(null, 
 					"Selecione o tipo de depósito: \n" + 
 					"PERSONALIZADO\n" +
-					"Você informa a quantidade de cédulas para cada valor separadamente\n\n" +
+					"Você informa a quantidade de cédulas para cada valor separadamente\n" +
 					"FIXO\n" +
 					"Você informa um único número, aplicado a todos os valores."
 					, TITLE_LOAD, JOptionPane.CLOSED_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
@@ -85,15 +85,36 @@ public class CaixaEletronico {
 			if(makeDeposit) options[2] = "Finalizar";
 		}while(opMenu != 2);
 		
+		
+				
 		if(makeDeposit) {
+			depositReport.append(reportBuilder(banknotesDeposited));
 			for(int i = 0; i < currQuantityBanknotes.length; i++) {
-				depositReport = depositReport.concat(String.format("R$%-5d | %d%n", BANKNOTE_VALUES[i], banknotesDeposited[i]));
 				currQuantityBanknotes[i] += banknotesDeposited[i];
 			}			
 			JOptionPane.showMessageDialog(null, depositReport, TITLE_LOAD, JOptionPane.INFORMATION_MESSAGE);
-		}		
+		}
+		
 		
 		return currQuantityBanknotes;
+	}
+	
+	public static String reportBuilder(int[] banknotesDeposited) {
+		StringBuilder report = new StringBuilder();
+		
+		report.append("RELATÓRIO DE DEPÓSITOS\n");
+		report.append("-".repeat(50) + "\n");
+		report.append(String.format("%-10s%-10s%-10s%n", "QTD", "CÉDULA", "SUBTOTAL"));
+		report.append("-".repeat(50) + "\n");
+		
+		for(int i = 0; i < banknotesDeposited.length; i++) {
+			int subtotal = BANKNOTE_VALUES[i] * banknotesDeposited[i];
+			report.append(String.format("%03d        R$ %3d      |    R$%-5d%n", banknotesDeposited[i], BANKNOTE_VALUES[i], subtotal));
+		}
+		
+		report.append("-".repeat(50));
+		
+		return report.toString();
 	}
 	
 	public static void menuRetirarNotas() {
