@@ -15,8 +15,8 @@ public class CaixaEletronico {
 		String options[] = { "Carregar Notas", "Retirar Notas", "Estatística", "Sair" };
 
 		int[] quantityBanknotes = new int[6];
-		ArrayList<Integer>[] banks = new ArrayList[4];
 		String[] optionsBank = { "Banco do Brasil", "Santander", "Itaú", "Caixa" };
+		ArrayList<Integer>[] banks = new ArrayList[4];
 
 		for (int i = 0; i < banks.length; i++)
 			banks[i] = new ArrayList<Integer>();
@@ -27,9 +27,13 @@ public class CaixaEletronico {
 			op = JOptionPane.showOptionDialog(null, "Menu Principal", TITLE_MAIN, JOptionPane.CLOSED_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 
 			switch (op) {
+
+			// opção FAZER DEPOSITO
 			case 0:
 				quantityBanknotes = loadBankNotes(quantityBanknotes);
 				break;
+
+			// opção FAZER SAQUE
 			case 1:
 				int[] bankNotesWithDrawal = cashWithdrawal(quantityBanknotes, banks, optionsBank);
 				for (int i = 0; i < quantityBanknotes.length; i++)
@@ -37,63 +41,55 @@ public class CaixaEletronico {
 
 				break;
 
+			// opção LER ESTATÍSTICAS
 			case 2:
 				JOptionPane.showMessageDialog(null, Arrays.toString(quantityBanknotes));
 				break;
-			case 3:
-				JOptionPane.showMessageDialog(null, "Encerrando programa...", TITLE_MAIN, JOptionPane.WARNING_MESSAGE);
-				break;
 
+			// opção SAIR DO PROGRAMA
+			case 3:
 			default:
+				JOptionPane.showMessageDialog(null, "Encerrando programa...", TITLE_MAIN, JOptionPane.WARNING_MESSAGE);
+				op = 3;
 				break;
 			}
 		} while (op != 3);
 	}
 
 	// DEPOSITAR
-	public static int[] loadBankNotes(int[] listNotas) {
+	public static int[] loadBankNotes(int[] banknotesAvailable) {
 		// 1.1. Carregar a quantidade de notas em uma área da memória com 6 ocorrências
 		final String TITLE_LOAD = "Depósito bancário | FATEC-ZL";
-		String[] options = { "PERSONALIZADO", "FIXO", "Cancelar" };
 		StringBuilder depositReport = new StringBuilder();
 
-		int[] currQuantityBanknotes = Arrays.copyOf(listNotas, listNotas.length);
+		int[] currQuantityBanknotes = Arrays.copyOf(banknotesAvailable, banknotesAvailable.length);
 		int[] banknotesDeposited = new int[6];
-		int opMenu = 0;
+		int typeDeposit = typeDepositMenu(TITLE_LOAD);
 
-		boolean makeDeposit = false;
+		switch (typeDeposit) {
 
-		do {
-			opMenu = JOptionPane.showOptionDialog(null, "Selecione o tipo de depósito: \n" + "PERSONALIZADO\n"
-					+ "Você informa a quantidade de cédulas para cada valor separadamente\n" + "FIXO\n"
-					+ "Você informa um único número, aplicado a todos os valores.", TITLE_LOAD, JOptionPane.CLOSED_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
-			switch (opMenu) {
-			// opção PERSONALIZADO
-			case 0:
-				for (int i = 0; i < listNotas.length; i++) {
-					banknotesDeposited[i] += Integer.parseInt(JOptionPane.showInputDialog(null, "Depósito em dinheiro: \nInforme a quantidade de cédulas de R$ "
-							+ BANKNOTE_VALUES[i] + ":", TITLE_LOAD, JOptionPane.INFORMATION_MESSAGE));
-					makeDeposit = true;
-				}
+		case 0:
+			banknotesDeposited = getListPersonalizedBanknotes(TITLE_LOAD);
+			if (banknotesDeposited == null)
+				return banknotesAvailable;
+			break;
 
-				break;
-			// opção FIXO
-			case 1:
-				int quantityBanknote = Integer.parseInt(JOptionPane.showInputDialog(null, "Informe a quantidade de cédulas que será depositada para cada valor:", TITLE_LOAD, JOptionPane.QUESTION_MESSAGE));
-				for (int i = 0; i < banknotesDeposited.length; i++)
-					banknotesDeposited[i] += quantityBanknote;
-				makeDeposit = true;
-				break;
-			// opção Cancelar
-			default:
-				break;
-			}
+		case 1:
+			Integer quantity = getFixedBanknotesQuantity(TITLE_LOAD);
+			if (quantity == null)
+				return banknotesAvailable;
+			Arrays.fill(banknotesDeposited, quantity);
+			break;
 
-			if (makeDeposit)
-				options[2] = "Finalizar";
-		} while (opMenu != 2);
+		case 2:
+		default:
+			JOptionPane.showMessageDialog(null, "Operação cancelada!");
+			return banknotesAvailable;
+		}
 
-		if (makeDeposit) {
+		int subtotal = calculateSubtotalDeposit(banknotesDeposited);
+
+		if (subtotal != 0) {
 			depositReport.append(reportBuilder(banknotesDeposited));
 			for (int i = 0; i < currQuantityBanknotes.length; i++) {
 				currQuantityBanknotes[i] += banknotesDeposited[i];
@@ -102,6 +98,91 @@ public class CaixaEletronico {
 		}
 
 		return currQuantityBanknotes;
+	}
+
+	public static int calculateSubtotalDeposit(int[] banknotesDeposited) {
+		int subtotal = 0;
+
+		for (int i = 0; i < banknotesDeposited.length; i++)
+			subtotal += banknotesDeposited[i] * BANKNOTE_VALUES[i];
+
+		return subtotal;
+	}
+
+	public static int typeDepositMenu(String TITLE_LOAD) {
+		String[] options = { "PERSONALIZADO", "FIXO", "Cancelar" };
+
+		int opMenu = JOptionPane.showOptionDialog(null, "Selecione o tipo de depósito: \nPERSONALIZADO\nVocê informa a quantidade de cédulas para cada valor separadamente\nFIXO\nVocê informa um único número, aplicado a todos os valores.", TITLE_LOAD, JOptionPane.CLOSED_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+
+		if (opMenu == -1)
+			return 2; 
+
+		return opMenu;
+	}
+
+	public static int[] getListPersonalizedBanknotes(String TITLE_LOAD) {
+		int[] applyBanknotes = new int[6];
+
+		for (int i = 0; i < applyBanknotes.length; i++) {
+			boolean isValid = false;
+
+			do {
+				try {
+					String inputUser = JOptionPane.showInputDialog(null, "Depósito em dinheiro: \nInforme a quantidade de cédulas de R$ "
+							+ BANKNOTE_VALUES[i] + ":", TITLE_LOAD, JOptionPane.INFORMATION_MESSAGE);
+					if (inputUser == null)
+						return null;
+
+					applyBanknotes[i] = Integer.parseInt(inputUser);
+
+					if (applyBanknotes[i] < 0)
+						throw new IllegalArgumentException("O valor do depósito não pode ser negativo!");
+
+					isValid = true;
+				} catch (NumberFormatException e) {
+					// TODO: handle exception
+					JOptionPane.showMessageDialog(null, "Formato inválido! Insira o valor em números inteiros!", TITLE_LOAD, JOptionPane.WARNING_MESSAGE);
+				} catch (IllegalArgumentException e) {
+					// TODO: handle exception
+					JOptionPane.showMessageDialog(null, e.getMessage(), TITLE_LOAD, JOptionPane.WARNING_MESSAGE);
+				}
+
+			} while (!isValid);
+		}
+		return applyBanknotes;
+	}
+
+	public static Integer getFixedBanknotesQuantity(String title) {
+
+		Integer quantityBanknote = null;
+		boolean isValid = false;
+
+		do {
+
+			String inputUser = JOptionPane.showInputDialog(null, "Informe a quantidade de cédulas que será depositada para cada valor:", title, JOptionPane.QUESTION_MESSAGE);
+
+			if (inputUser == null) {
+				return null; // cancelamento explícito
+			}
+
+			try {
+
+				int parsedValue = Integer.parseInt(inputUser);
+
+				if (parsedValue < 0) {
+					JOptionPane.showMessageDialog(null, "A quantidade não pode ser negativa!", title, JOptionPane.WARNING_MESSAGE);
+				} else {
+					quantityBanknote = parsedValue;
+					isValid = true;
+				}
+
+			} catch (NumberFormatException e) {
+				JOptionPane.showMessageDialog(null, "Formato inválido! Insira um número inteiro.", title, JOptionPane.WARNING_MESSAGE);
+			}
+
+		} while (!isValid);
+
+		return quantityBanknote;
 	}
 
 	public static String reportBuilder(int[] banknotesDeposited) {
@@ -123,6 +204,8 @@ public class CaixaEletronico {
 
 	}
 
+	// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+
 	// SAQUE
 	public static int[] cashWithdrawal(int[] banknotesAvailable, ArrayList<Integer>[] bankList, String[] optionsBank) {
 		// 1.2. Solicitar que o cliente faça a retirada de valores obedecendo ao
@@ -135,65 +218,82 @@ public class CaixaEletronico {
 		// 1.7. No momento da solicitação do valor, coletar também o código do banco que
 		// o cliente tem conta, segundo:
 		int[] withdrawalBanknotes = new int[6];
-		int valueWithdrawal = 0;
+		int valueTotal = 0;
 
 		String TITLE_WITHDRAWAL = "Saque | FATEC -ZL";
-		String[] options = { "Digitar valor", "Escolher notas", "Cancelar" };
-		StringBuilder reportWithdrawal = new StringBuilder();
+		String reportWithdrawal = "";
 
-		int opWithdrawal= typeWithdrawal(TITLE_WITHDRAWAL, options);
 		int optionBank = typeBank(TITLE_WITHDRAWAL, optionsBank);
+		if (optionBank < 0)
+			return new int[6];
+
+		int opWithdrawal = typeWithdrawal(TITLE_WITHDRAWAL);
 
 		switch (opWithdrawal) {
 		case 0:
-			int requestValueWithdrawal = Integer.parseInt(JOptionPane.showInputDialog(null, "Insira o valor do saque desejado: ", TITLE_WITHDRAWAL, JOptionPane.QUESTION_MESSAGE));
-
-			if (withdrawalAvailable(requestValueWithdrawal, banknotesAvailable, withdrawalBanknotes)) {
-
-			} else {
-				Arrays.fill(withdrawalBanknotes, 0);
-			}
-
+			withdrawalBanknotes = calculateAutomaticWithdrawal(TITLE_WITHDRAWAL, banknotesAvailable);
+			if (withdrawalBanknotes == null)
+				return new int[6]; // caso operação cancelada
 			break;
 		case 1:
-			for (int i = banknotesAvailable.length - 1; i >= 0; i--) {
-				if (banknotesAvailable[i] > 0) {
-					String msgRequest = String.format("Quantas cédulas de R$ %d deseja?%n(Notas disponíveis: %d cédulas)", BANKNOTE_VALUES[i], banknotesAvailable[i]);
-					int qtdRequestBanknotes = 0;
-					do {
-						qtdRequestBanknotes = Integer.parseInt(JOptionPane.showInputDialog(null, msgRequest, TITLE_WITHDRAWAL, JOptionPane.QUESTION_MESSAGE));
-						withdrawalBanknotes[i] = qtdRequestBanknotes;
-
-						if (qtdRequestBanknotes > banknotesAvailable[i]) {
-							JOptionPane.showMessageDialog(null, "Qtd. solicitada de cédulas acima do disponível!\nPor favor, insira valores abaixo do limite ou 0 (ZERO) para solicitar as proximas notas!", TITLE_WITHDRAWAL, JOptionPane.WARNING_MESSAGE);
-						}
-					} while (qtdRequestBanknotes > banknotesAvailable[i]);
-				} else {
-					JOptionPane.showMessageDialog(null, "Cédulas de R$ " + BANKNOTE_VALUES[i]
-							+ " indisponíveis em nosso caixa!\n", TITLE_WITHDRAWAL, JOptionPane.WARNING_MESSAGE);
-				}
-
-			}
-
+			withdrawalBanknotes = calculateManualWithdrawal(TITLE_WITHDRAWAL, banknotesAvailable);
+			if (withdrawalBanknotes == null)
+				return new int[6]; // caso operação cancelada
 			break;
 		default:
-			break;
+			// caso selecionado Cancelar ou 'X' da janela
+			return new int[6];
 		}
 
-		for (int i = 0; i < withdrawalBanknotes.length; i++)
-			valueWithdrawal += withdrawalBanknotes[i] * BANKNOTE_VALUES[i];
+		valueTotal = calculateSubtotal(withdrawalBanknotes);
 
 		// armazena o valor do saque no seu respectivo banco
-		if (valueWithdrawal != 0)
-			bankList[optionBank].add(valueWithdrawal);
-
-		reportWithdrawal.append(withdrawalBanknotes);
+		if (valueTotal != 0) {
+			bankList[optionBank].add(valueTotal);
+			reportWithdrawal = reportWithdrawalBuild(withdrawalBanknotes, valueTotal);
+		} else {
+			reportWithdrawal = "Excedeu o limite de caixa ou \no nosso caixa não possui as combinações de notas necessárias para atender ao valor solicitado!";
+		}
 
 		JOptionPane.showMessageDialog(null, reportWithdrawal.toString());
 		return withdrawalBanknotes;
 	}
 
-	public static boolean withdrawalAvailable(int withdrawal, int[] banknotesAvailable, int[] withdrawalBanknotes) {
+	public static int typeWithdrawal(String TITLE_WITHDRAWAL) {
+
+		String[] options = { "Digitar valor", "Escolher notas" };
+
+		int opWithdrawal = 0;
+		opWithdrawal = JOptionPane.showOptionDialog(null, "Qual opção de saque deseja?", TITLE_WITHDRAWAL, JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+
+		return opWithdrawal;
+	}
+
+	public static int typeBank(String TITLE_WITHDRAWAL, String[] optionsBank) {
+		int optionBank = JOptionPane.showOptionDialog(null, "Em qual banco você tem conta?", TITLE_WITHDRAWAL, JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, optionsBank, optionsBank[0]);
+		return optionBank;
+	}
+
+	public static int[] calculateAutomaticWithdrawal(String TITLE_WITHDRAWAL, int[] banknotesAvailable) {
+
+		int[] usedBanknotes = new int[6];
+
+		Integer requestValue = requestWithdrawalValue(TITLE_WITHDRAWAL);
+
+		// CASO CANCELAMENTO
+		if (requestValue == null)
+			return null;
+
+		// verifica se usuario continuou a operação ou clicou em cancelar
+
+		if (!withdrawalAvailable(requestValue, banknotesAvailable, usedBanknotes))
+			Arrays.fill(usedBanknotes, 0);
+
+		return usedBanknotes;
+
+	}
+
+	public static boolean withdrawalAvailable(int withdrawal, int[] banknotesAvailable, int[] usedBanknotes) {
 		for (int i = banknotesAvailable.length - 1; i >= 0; i--) {
 			if (banknotesAvailable[i] > 0) {
 
@@ -204,48 +304,130 @@ public class CaixaEletronico {
 				int qtdUsada = Math.min(qtdNecessaria, banknotesAvailable[i]);
 
 				withdrawal -= qtdUsada * BANKNOTE_VALUES[i];
-				withdrawalBanknotes[i] = qtdUsada;
 
-				/*
-				 * int qtdCedulas = withdrawal / BANKNOTE_VALUES[i]; if(banknotesAvailable[i] >=
-				 * qtdCedulas) { withdrawal -= qtdCedulas * BANKNOTE_VALUES[i];
-				 * withdrawalBanknotes[i] = qtdCedulas; }
-				 */
+				usedBanknotes[i] = qtdUsada;
 			}
 		}
 		return (withdrawal == 0);
 	}
 
-	public static String reportWithdrawalBuild(int[] banknotesWithDrawal) {
-		StringBuilder report = new StringBuilder("SAQUE REALIZADO COM SUCESSO!\n");
-		int total = 0;
+	public static Integer requestWithdrawalValue(String TITLE_WITHDRAWAL) {
+		int value = 0;
 
-		report.append("-".repeat(30));
-		report.append("\nQTD | CÉDULA\n");
-		for (int i = 0; i < banknotesWithDrawal.length; i++) {
-			if (banknotesWithDrawal[i] != 0) {
-				report.append(String.format("%03d | R$ %d%n", banknotesWithDrawal[i], BANKNOTE_VALUES[i]));
-				total += banknotesWithDrawal[i] * BANKNOTE_VALUES[i];
+		do {
+			try {
+				String inputValue = JOptionPane.showInputDialog(null, "Insira o valor do saque desejado: ", TITLE_WITHDRAWAL, JOptionPane.QUESTION_MESSAGE);
+
+				// caso usuario feche janela ou clique em Cancelar
+				if (inputValue == null)
+					return null;
+				value = Integer.parseInt(inputValue);
+			} catch (NumberFormatException e) {
+				// TODO: handle exception
+				JOptionPane.showMessageDialog(null, "Formato inválido de saque! Tente novamente!", TITLE_WITHDRAWAL, JOptionPane.WARNING_MESSAGE);
+			} catch (IllegalArgumentException e) {
+				// TODO: handle exception
+				JOptionPane.showMessageDialog(null, e.getMessage(), TITLE_WITHDRAWAL, JOptionPane.WARNING_MESSAGE);
+			}
+			if (value == -1)
+				throw new IllegalStateException("Operação cancelada!");
+		} while (value < 1);
+
+		return value;
+	}
+
+	public static int[] calculateManualWithdrawal(String TITLE_WITHDRAWAL, int[] banknotesAvailable) {
+		int[] usedBanknotes = new int[6];
+
+		int[] requestBanknotes = requestListBanknotes(banknotesAvailable, TITLE_WITHDRAWAL);
+		if (requestBanknotes == null)
+			return null;
+
+		for (int i = 0; i < requestBanknotes.length; i++) {
+			if (requestBanknotes[i] <= banknotesAvailable[i]) {
+				usedBanknotes[i] = requestBanknotes[i];
+			} else {
+				Arrays.fill(usedBanknotes, 0);
+				break;
 			}
 		}
-		report.append("-".repeat(30));
-		report.append("Total: R$ " + total);
-		return report.toString();
-	}
-	
-	public static int typeWithdrawal(String TITLE_WITHDRAWAL, String[] optionsWithdrawal) {
 
-		int opWithdrawal = 0;
-		opWithdrawal = JOptionPane.showOptionDialog(null, "Qual opção de saque deseja?", TITLE_WITHDRAWAL, JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, optionsWithdrawal, optionsWithdrawal[0]);
+		return usedBanknotes;
+	}
 
-		
-		return opWithdrawal;
+	public static int[] requestListBanknotes(int[] banknotesAvailable, String TITLE_WITHDRAWAL) {
+		int[] banknotesRequest = new int[6];
+
+		for (int i = banknotesAvailable.length - 1; i >= 0; i--) {
+
+			if (banknotesAvailable[i] > 0) {
+				boolean valido = false;
+				int qtdBanknote = 0;
+
+				while (!valido) {
+					try {
+						String msgRequest = String.format("Quantas cédulas de R$ %d deseja?%n(Notas disponíveis: %d cédulas)", BANKNOTE_VALUES[i], banknotesAvailable[i]);
+
+						String inputUser = JOptionPane.showInputDialog(null, msgRequest, TITLE_WITHDRAWAL, JOptionPane.QUESTION_MESSAGE);
+
+						if (inputUser == null)
+							return null;
+
+						qtdBanknote = Integer.parseInt(inputUser);
+
+						if (qtdBanknote < 0)
+							throw new IllegalArgumentException("A qtd. de cédulas a sacar deve ser maior que 0!");
+
+						valido = true;
+
+					} catch (NumberFormatException e) {
+						JOptionPane.showMessageDialog(null, "Formato inválido!", TITLE_WITHDRAWAL, JOptionPane.WARNING_MESSAGE);
+					} catch (IllegalArgumentException e) {
+						JOptionPane.showMessageDialog(null, e.getMessage(), TITLE_WITHDRAWAL, JOptionPane.WARNING_MESSAGE);
+					}
+				}
+
+				banknotesRequest[i] = qtdBanknote;
+
+			} else {
+				JOptionPane.showMessageDialog(null, "Cédulas de R$ " + BANKNOTE_VALUES[i]
+						+ " indisponíveis em nosso caixa!\n", TITLE_WITHDRAWAL, JOptionPane.WARNING_MESSAGE);
+			}
+
+		}
+
+		return banknotesRequest;
 	}
-	
-	public static int typeBank(String TITLE_WITHDRAWAL, String[] optionsBank) {
-		int optionBank = JOptionPane.showOptionDialog(null, "Em qual banco você tem conta?", TITLE_WITHDRAWAL, JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, optionsBank, optionsBank[0]);
-		return optionBank;
+
+	public static int calculateSubtotal(int[] withdrawalBanknotes) {
+		int subtotal = 0;
+		for (int i = 0; i < withdrawalBanknotes.length; i++)
+			subtotal += withdrawalBanknotes[i] * BANKNOTE_VALUES[i];
+		return subtotal;
 	}
+
+	public static String reportWithdrawalBuild(int[] withdrawalBanknotes, int totalValue) {
+		if (totalValue == 0) {
+			return "EXCEDEU LIMITE DE CAIXA";
+		} else {
+			StringBuilder report = new StringBuilder("SAQUE REALIZADO COM SUCESSO!\n");
+			int total = 0;
+
+			report.append("-".repeat(30));
+			report.append("\nQTD | CÉDULA\n");
+			for (int i = 0; i < withdrawalBanknotes.length; i++) {
+				if (withdrawalBanknotes[i] != 0) {
+					report.append(String.format("%03d | R$ %d%n", withdrawalBanknotes[i], BANKNOTE_VALUES[i]));
+					total += withdrawalBanknotes[i] * BANKNOTE_VALUES[i];
+				}
+			}
+			report.append("-".repeat(30));
+			report.append("\nTotal: R$ " + total);
+			return report.toString();
+		}
+	}
+
+	// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 	public static void menuEstatistica() {
 		JOptionPane.showMessageDialog(null, BANKNOTE_VALUES);
