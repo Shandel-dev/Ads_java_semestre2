@@ -8,7 +8,7 @@ import javax.swing.JOptionPane;
 public class Lt02Ex05Formula {
 
 	static final String TITLE_EXER = "Calcular expressão matemática";
-	static final int LIST_SIZE = 21;
+	static final int LIST_SIZE = 53;
 	static final int MAX_VALUE = 10;
 	
 	public static void main(String[] args) {

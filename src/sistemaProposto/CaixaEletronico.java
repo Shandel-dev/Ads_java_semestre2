@@ -2,6 +2,7 @@ package sistemaProposto;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 
 import javax.swing.JOptionPane;
 
@@ -9,20 +10,19 @@ public class CaixaEletronico {
 
 	static final String TITLE_MAIN = "Caixa Eletrônico | FATEC-ZL";
 	static final int[] BANKNOTE_VALUES = { 2, 5, 10, 20, 50, 100 };
+	static final String[] BANK_NAMES = { "Banco do Brasil", "Santander", "Itaú", "Caixa" };
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		String options[] = { "Carregar Notas", "Retirar Notas", "Estatística", "Sair" };
 
 		int[] quantityBanknotes = new int[6];
-		String[] optionsBank = { "Banco do Brasil", "Santander", "Itaú", "Caixa" };
-		ArrayList<Integer>[] banks = new ArrayList[4];
+		ArrayList<Integer>[] banks = new ArrayList[BANK_NAMES.length];
 
 		for (int i = 0; i < banks.length; i++)
 			banks[i] = new ArrayList<Integer>();
 		int op = 0;
 
-		// 1.6. Solicitar até 100 retiradas ou até não haver mais notas.
 		do {
 			op = JOptionPane.showOptionDialog(null, "Menu Principal", TITLE_MAIN, JOptionPane.CLOSED_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 
@@ -35,7 +35,7 @@ public class CaixaEletronico {
 
 			// opção FAZER SAQUE
 			case 1:
-				int[] bankNotesWithDrawal = cashWithdrawal(quantityBanknotes, banks, optionsBank);
+				int[] bankNotesWithDrawal = cashWithdrawal(quantityBanknotes, banks);
 				for (int i = 0; i < quantityBanknotes.length; i++)
 					quantityBanknotes[i] -= bankNotesWithDrawal[i];
 
@@ -43,7 +43,7 @@ public class CaixaEletronico {
 
 			// opção LER ESTATÍSTICAS
 			case 2:
-				JOptionPane.showMessageDialog(null, Arrays.toString(quantityBanknotes));
+				menuEstatistica(banks, quantityBanknotes);
 				break;
 
 			// opção SAIR DO PROGRAMA
@@ -115,7 +115,7 @@ public class CaixaEletronico {
 		int opMenu = JOptionPane.showOptionDialog(null, "Selecione o tipo de depósito: \nPERSONALIZADO\nVocê informa a quantidade de cédulas para cada valor separadamente\nFIXO\nVocê informa um único número, aplicado a todos os valores.", TITLE_LOAD, JOptionPane.CLOSED_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 
 		if (opMenu == -1)
-			return 2; 
+			return 2;
 
 		return opMenu;
 	}
@@ -207,7 +207,7 @@ public class CaixaEletronico {
 	// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 	// SAQUE
-	public static int[] cashWithdrawal(int[] banknotesAvailable, ArrayList<Integer>[] bankList, String[] optionsBank) {
+	public static int[] cashWithdrawal(int[] banknotesAvailable, ArrayList<Integer>[] bankList) {
 		// 1.2. Solicitar que o cliente faça a retirada de valores obedecendo ao
 		// critério do maior pelo menor.
 		// 1.3. Dar a opção para o cliente escolher o valor e a quantidade de notas. P.
@@ -223,7 +223,7 @@ public class CaixaEletronico {
 		String TITLE_WITHDRAWAL = "Saque | FATEC -ZL";
 		String reportWithdrawal = "";
 
-		int optionBank = typeBank(TITLE_WITHDRAWAL, optionsBank);
+		int optionBank = typeBank(TITLE_WITHDRAWAL);
 		if (optionBank < 0)
 			return new int[6];
 
@@ -269,8 +269,8 @@ public class CaixaEletronico {
 		return opWithdrawal;
 	}
 
-	public static int typeBank(String TITLE_WITHDRAWAL, String[] optionsBank) {
-		int optionBank = JOptionPane.showOptionDialog(null, "Em qual banco você tem conta?", TITLE_WITHDRAWAL, JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, optionsBank, optionsBank[0]);
+	public static int typeBank(String TITLE_WITHDRAWAL) {
+		int optionBank = JOptionPane.showOptionDialog(null, "Em qual banco você tem conta?", TITLE_WITHDRAWAL, JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, BANK_NAMES, BANK_NAMES);
 		return optionBank;
 	}
 
@@ -429,13 +429,105 @@ public class CaixaEletronico {
 
 	// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 
-	public static void menuEstatistica() {
-		JOptionPane.showMessageDialog(null, BANKNOTE_VALUES);
+	public static void menuEstatistica(ArrayList<Integer>[] banks, int[] banknotesAvailables) {
+
+		final String TITLE_STATISTICS = "Estatísticas | Fatec-ZL";
+		String reportBanks[] = reportBanksBuilder(banks);
+		String cashReport = reportCashBuild(banknotesAvailables);
+
+		for (int i = 0; i < reportBanks.length; i++) {
+			String msgEstatisticas = String.format("%d. %s%n%s", (i + 1), BANK_NAMES[i], reportBanks[i]);
+
+			JOptionPane.showMessageDialog(null, msgEstatisticas, TITLE_STATISTICS, JOptionPane.INFORMATION_MESSAGE);
+		}
+
+		JOptionPane.showMessageDialog(null, cashReport, TITLE_STATISTICS, JOptionPane.INFORMATION_MESSAGE);
+
+		// &nbsp; = " ";
 		/*
 		 * 1.8. No final, exibir a estatística, separada por bancos, com: 1.8.1. O maior
 		 * e o menor valor sacado; 1.8.2. A média dos saques; 1.8.3. Valor total dos
 		 * saques; 1.8.4. Valor das sobras dos caixas.
 		 */
+	}
+
+	public static String[] reportBanksBuilder(ArrayList<Integer>[] banks) {
+		String[] reports = new String[banks.length];
+		Locale localFormat = Locale.forLanguageTag("pt-br");
+
+		for (int i = 0; i < reports.length; i++) {
+			StringBuilder rp = new StringBuilder();
+
+			double[] dados = { maiorSaque(banks[i]), menorSaque(banks[i]), mediaSaques(banks[i]),
+					totalValorSaques(banks[i]) };
+			String[] lblText = { "Maior saque", "Menor saque", "Média de valor dos saques", "Valor total dos saques" };
+
+			for (int j = 0; j < dados.length; j++) {
+				rp.append(String.format(localFormat, "%s: R$ %,.2f%n", lblText[j], dados[j]));
+			}
+
+			reports[i] = rp.toString();
+		}
+
+		return reports;
+	}
+
+	public static double maiorSaque(ArrayList<Integer> bank) {
+		if (bank.size() == 0)
+			return 0;
+		int maior = bank.get(0);
+		for (int i : bank)
+			if (i > maior)
+				maior = i;
+		return (double) maior;
+	}
+
+	public static double menorSaque(ArrayList<Integer> bank) {
+		if (bank.size() == 0)
+			return 0;
+		int menor = bank.get(0);
+		for (int saque : bank)
+			if (saque < menor)
+				menor = saque;
+		return (double) menor;
+	}
+
+	public static double mediaSaques(ArrayList<Integer> bank) {
+
+		if (bank.size() == 0)
+			return 0.0;
+
+		int total = 0;
+		for (int saque : bank)
+			total += saque;
+		return (double) total / bank.size();
+	}
+
+	public static double totalValorSaques(ArrayList<Integer> bank) {
+		if (bank.size() == 0)
+			return 0;
+		int total = 0;
+
+		for (int saque : bank)
+			total += saque;
+		return (double) total;
+	}
+
+	public static String reportCashBuild(int[] banknotesAvailable) {
+
+		StringBuilder report = new StringBuilder("<html><pre>");
+
+		report.append(String.format("%s| %6s | %8s%n", "Cédula", "Qtd.", "Subtotal"));
+
+		for (int i = 0; i < banknotesAvailable.length; i++) {
+			double subtotal = (double) banknotesAvailable[i] * BANKNOTE_VALUES[i];
+
+			report.append(String.format(Locale.forLanguageTag("pt-BR"), "R$%3d | %6d | R$%8.2f%n", BANKNOTE_VALUES[i], banknotesAvailable[i], subtotal));
+		}
+
+		report.append("</pre></html>");
+
+		return report.toString();
 	}
 
 }

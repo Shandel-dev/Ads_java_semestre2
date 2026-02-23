@@ -5,7 +5,7 @@ import javax.swing.JOptionPane;
 public class Lt02Ex11GradienteNum {
 
 	static final String TITLE_EXER = "Gradiente de números";
-	static final int MATRIZ_SIZE = 11;
+	static final int MATRIZ_SIZE = 26;
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
